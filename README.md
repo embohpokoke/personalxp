@@ -1,6 +1,16 @@
-# personal-xp
+# personalxp
 
-Personal spending tracker for Erik and Ocha.
+Personal expense tracker for Erik and Ocha using AI agents, OpenClaw and Hermes, as receipt capture.
+
+The app is a mobile-first installable PWA. Receipt images can be sent to OpenClaw or Hermes, where the agent extracts transaction data and posts it to the backend API.
+
+## Stack
+
+- Backend: FastAPI
+- Database: PostgreSQL
+- Frontend: Vue 3 CDN and Tailwind CDN
+- Auth: shared PIN, stored only as a hash
+- Agent ingestion: Hermes and OpenClaw API keys
 
 ## Local Setup
 
@@ -36,11 +46,24 @@ Check seed data:
 make seed-check
 ```
 
+Run the local API:
+
+```bash
+make dev
+```
+
+Health check:
+
+```bash
+curl http://127.0.0.1:8004/api/v1/healthz
+```
+
 ## Security Notes
 
 - The PIN is never committed.
 - The database stores only `users.pin_hash`.
 - `.env`, receipt uploads, and backup dumps are ignored by git.
+- Agent keys belong in local environment files or the production wallet, never source code.
 
 ## Production
 
