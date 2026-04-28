@@ -1,7 +1,7 @@
 [project]
 name = "personalxp"
 version = "0.1.0"
-description = "Personal spending tracker for Erik and Ocha"
+description = "Personal spending tracker with AI-assisted receipt capture"
 requires-python = ">=3.11"
 
 [tool.pytest.ini_options]

@@ -1,6 +1,6 @@
 # personalxp
 
-Personal expense tracker for Erik and Ocha using AI agents, OpenClaw and Hermes, as receipt capture.
+Personal expense tracker using AI agents, OpenClaw and Hermes, as receipt capture.
 
 The app is a mobile-first installable PWA. Receipt images can be sent to OpenClaw or Hermes, where the agent extracts transaction data and posts it to the backend API.
 

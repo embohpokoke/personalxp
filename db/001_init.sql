@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS categories (
 CREATE TABLE IF NOT EXISTS transactions (
   id                SERIAL PRIMARY KEY,
   user_id           INT NOT NULL REFERENCES users(id),
-  entered_by        TEXT CHECK (entered_by IN ('erik', 'ocha') OR entered_by IS NULL),
+  entered_by        TEXT CHECK (entered_by IN ('primary', 'secondary') OR entered_by IS NULL),
   source_agent      TEXT,
   type              TEXT NOT NULL CHECK (type IN ('expense', 'income')),
   amount            NUMERIC(14,2) NOT NULL CHECK (amount >= 0),
@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS agent_audit (
 );
 
 INSERT INTO users (name, email, pin_hash, role)
-VALUES ('Erik & Ocha', 'erik+ocha@personal-xp.local', '__PIN_HASH_PLACEHOLDER__', 'owner')
+VALUES ('Shared User', 'shared@personal-xp.local', '__PIN_HASH_PLACEHOLDER__', 'owner')
 ON CONFLICT (email) DO NOTHING;
 
 INSERT INTO categories (name, type, icon, is_custom) VALUES
