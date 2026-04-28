@@ -1,0 +1,13 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+receipts/*
+!receipts/.gitkeep
+*.sql.gz
+.DS_Store
+node_modules/
+dist/
+build/

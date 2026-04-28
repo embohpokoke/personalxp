@@ -1,0 +1,9 @@
+{
+  "name": "Personal XP",
+  "short_name": "XP",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#006c50",
+  "background_color": "#f4fbf5",
+  "icons": []
+}
