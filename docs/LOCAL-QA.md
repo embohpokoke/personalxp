@@ -1,10 +1,39 @@
 # Local QA
 
-This file will hold the local smoke-test checklist once the API is implemented.
-
-Phase 1 gate:
+## Phase 1 Gate
 
 - Local PostgreSQL starts.
 - `db/001_init.sql` applies from scratch.
 - One shared user exists.
-- Eleven default categories exist.
+- At least eleven default categories exist.
+
+## Phase 2 Gate
+
+- `GET /api/v1/healthz` returns `{"status":"ok"}`.
+- `POST /api/v1/auth/login` accepts the configured PIN.
+- `GET /api/v1/auth/me` works with the session cookie.
+- `POST /api/v1/auth/logout` clears the session.
+- Bad PIN returns `401`.
+- Valid Hermes/OpenClaw agent headers pass auth.
+- Invalid agent key returns `401`.
+
+## Phase 3 Gate
+
+- `GET /api/v1/categories` returns categories for an authenticated caller.
+- `POST /api/v1/categories` creates or reuses a custom category.
+- Web `POST /api/v1/transactions` creates a transaction from multipart form data.
+- Receipt upload stores a file and creates a `receipts` row.
+- `GET /receipts/{file}` streams a receipt only for an authenticated caller.
+- `GET /api/v1/transactions` lists transactions with pagination metadata.
+- `PATCH /api/v1/transactions/{id}` updates transaction fields and recalculates `amount_idr`.
+- `DELETE /api/v1/transactions/{id}` deletes the row and removes linked receipt files.
+- Hermes-style transaction ingestion with `X-Agent-Name: hermes` returns `201`.
+- OpenClaw-style transaction ingestion with `X-Agent-Name: openclaw` returns `201`.
+- Wrong agent key returns `401` and records `agent_audit.result = rejected`.
+
+## Commands
+
+```bash
+make seed-check
+.venv/bin/python -m pytest -q
+```

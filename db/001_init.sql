@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS transactions (
   category_id       INT REFERENCES categories(id),
   description       TEXT,
   merchant          TEXT,
+  source_extra      JSONB,
   txn_date          DATE NOT NULL,
   is_recurring      BOOLEAN NOT NULL DEFAULT FALSE,
   recurring_pattern TEXT,
@@ -42,6 +43,11 @@ CREATE TABLE IF NOT EXISTS transactions (
 CREATE INDEX IF NOT EXISTS idx_txn_date ON transactions (txn_date DESC);
 CREATE INDEX IF NOT EXISTS idx_txn_category ON transactions (category_id);
 CREATE INDEX IF NOT EXISTS idx_txn_source_agent ON transactions (source_agent);
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS source_extra JSONB;
+ALTER TABLE transactions DROP CONSTRAINT IF EXISTS transactions_entered_by_check;
+ALTER TABLE transactions
+  ADD CONSTRAINT transactions_entered_by_check
+  CHECK (entered_by IN ('primary', 'secondary') OR entered_by IS NULL);
 
 CREATE TABLE IF NOT EXISTS receipts (
   id             SERIAL PRIMARY KEY,

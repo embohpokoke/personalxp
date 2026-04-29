@@ -68,7 +68,12 @@ async def logout(
     response: Response,
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> dict[str, str]:
-    response.delete_cookie(settings.session_cookie_name, path="/")
+    response.delete_cookie(
+        settings.session_cookie_name,
+        secure=settings.is_production,
+        samesite="lax",
+        path="/",
+    )
     return {"message": "logged out"}
 
 

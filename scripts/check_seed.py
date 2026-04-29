@@ -36,11 +36,19 @@ def main() -> int:
 
     output = [line.strip() for line in result.stdout.splitlines() if line.strip()]
     print("\n".join(output))
-    expected = {"users=1", "categories=11"}
-    actual = set(output)
-    missing = expected - actual
-    if missing:
-        print(f"Seed check failed: missing {sorted(missing)}", file=sys.stderr)
+
+    values = {}
+    for line in output:
+        if "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        values[key] = int(value)
+
+    if values.get("users") != 1:
+        print("Seed check failed: expected exactly one shared user", file=sys.stderr)
+        return 1
+    if values.get("categories", 0) < 11:
+        print("Seed check failed: expected at least 11 default categories", file=sys.stderr)
         return 1
     return 0
 

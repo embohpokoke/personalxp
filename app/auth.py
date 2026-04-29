@@ -4,7 +4,7 @@ import secrets
 from typing import Annotated, Any, Literal
 
 import bcrypt
-from fastapi import Cookie, Header, HTTPException, status
+from fastapi import Header, HTTPException, Request, status
 import jwt
 
 from app.config import Settings, get_settings
@@ -74,15 +74,16 @@ def decode_session_token(token: str, settings: Settings | None = None) -> Sessio
 
 
 def require_session(
-    xp_session: Annotated[str | None, Cookie()] = None,
+    request: Request,
 ) -> SessionIdentity:
     settings = get_settings()
-    if not xp_session:
+    token = request.cookies.get(settings.session_cookie_name)
+    if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="missing session",
         )
-    return decode_session_token(xp_session, settings)
+    return decode_session_token(token, settings)
 
 
 def require_agent(
@@ -103,7 +104,10 @@ def require_agent(
             detail="invalid agent credentials",
         )
 
-    if not secrets.compare_digest(expected_key, x_agent_key):
+    if not secrets.compare_digest(
+        expected_key.encode("utf-8"),
+        x_agent_key.encode("utf-8"),
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="invalid agent credentials",
