@@ -58,6 +58,12 @@ Health check:
 curl http://127.0.0.1:8004/api/v1/healthz
 ```
 
+Run the local end-to-end smoke test while the app is running:
+
+```bash
+SMOKE_PIN='<your-pin>' make smoke
+```
+
 ## Security Notes
 
 - The PIN is never committed.

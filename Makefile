@@ -21,4 +21,4 @@ dev:
 	$(PYTHON) -m uvicorn app.main:app --host 127.0.0.1 --port 8004 --reload
 
 smoke:
-	$(PYTHON) scripts/check_seed.py
+	$(PYTHON) scripts/smoke_local.py

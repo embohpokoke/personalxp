@@ -53,10 +53,49 @@
 - PWA icons exist at `/icons/icon-192.png` and `/icons/icon-512.png`.
 - Mobile and desktop screenshots show the Stitch-inspired visual system without clipped primary controls.
 
+## Phase 6 Gate
+
+- `make smoke` runs a local end-to-end product pass without committing secrets.
+- `SMOKE_PIN` is required at runtime and is not stored in source code.
+- Smoke coverage includes:
+  - health endpoint
+  - static PWA shell, manifest, service worker, and icon
+  - unauthenticated rejection
+  - bad PIN rejection
+  - PIN login and session check
+  - category create/list
+  - budget create/list
+  - web transaction create with receipt upload
+  - receipt retrieval and cleanup after transaction delete
+  - transaction search and patch recalculation
+  - weekly and monthly report summaries
+  - monthly PDF export
+  - Hermes-style transaction ingestion
+  - wrong agent key rejection
+  - logout session clearing
+
 ## Commands
 
 ```bash
 make seed-check
 .venv/bin/python -m pytest -q
 node --check frontend/app.js
+```
+
+Run the local server in one terminal:
+
+```bash
+make dev
+```
+
+Run the Phase 6 smoke test in another terminal:
+
+```bash
+SMOKE_PIN='<local-pin>' make smoke
+```
+
+Optional overrides:
+
+```bash
+SMOKE_BASE_URL='http://127.0.0.1:8004' SMOKE_AGENT_KEY='<local-agent-key>' SMOKE_PIN='<local-pin>' make smoke
 ```
