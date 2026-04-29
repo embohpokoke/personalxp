@@ -76,8 +76,8 @@ CREATE TABLE IF NOT EXISTS agent_audit (
 );
 
 INSERT INTO users (name, email, pin_hash, role)
-VALUES ('Shared User', 'shared@personal-xp.local', '__PIN_HASH_PLACEHOLDER__', 'owner')
-ON CONFLICT (email) DO NOTHING;
+SELECT 'Shared User', 'shared@personal-xp.local', '__PIN_HASH_PLACEHOLDER__', 'owner'
+WHERE NOT EXISTS (SELECT 1 FROM users);
 
 INSERT INTO categories (name, type, icon, is_custom) VALUES
   ('Food', 'expense', '🍜', false),

@@ -1,8 +1,13 @@
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
+from app.db import lifespan
+from app.routers import auth
 
-app = FastAPI(title="personal-xp")
+
+app = FastAPI(title="personal-xp", lifespan=lifespan)
+
+app.include_router(auth.router)
 
 
 @app.get("/api/v1/healthz")
