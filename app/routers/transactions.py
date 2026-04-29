@@ -21,6 +21,7 @@ from app.schemas import (
     TransactionPatch,
     TransactionPublic,
 )
+from app.services.budget_check import check_budget_after_transaction
 
 
 router = APIRouter(prefix="/api/v1/transactions", tags=["transactions"])
@@ -154,6 +155,9 @@ async def category_id_for_name(
 ) -> int | None:
     if not category_name:
         return None
+    normalized_name = category_name.strip()
+    if not normalized_name:
+        return None
     row = await conn.fetchrow(
         """
         INSERT INTO categories (name, type, is_custom)
@@ -162,10 +166,18 @@ async def category_id_for_name(
         DO UPDATE SET name = EXCLUDED.name
         RETURNING id
         """,
-        category_name.strip(),
+        normalized_name,
         txn_type,
     )
     return int(row["id"])
+
+
+def safe_receipt_path(receipts_dir: Path, file_path: str) -> Path | None:
+    root = receipts_dir.resolve()
+    target = (root / file_path).resolve()
+    if not target.is_relative_to(root):
+        return None
+    return target
 
 
 def receipt_public(row: asyncpg.Record | None) -> ReceiptPublic | None:
@@ -435,6 +447,13 @@ async def create_transaction(
                         actor.source_agent,
                         payload_hash,
                     )
+                await check_budget_after_transaction(
+                    conn,
+                    transaction_id=transaction_id,
+                    category_id=category_id,
+                    txn_type=txn_type,
+                    txn_date=txn_date_value,
+                )
                 transaction = await fetch_transaction(conn, transaction_id)
     except Exception:
         if receipt_file is not None:
@@ -544,4 +563,6 @@ async def delete_transaction(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="transaction not found")
     receipts_dir = get_settings().receipts_dir
     for row in receipt_paths:
-        (receipts_dir / row["file_path"]).unlink(missing_ok=True)
+        target = safe_receipt_path(receipts_dir, row["file_path"])
+        if target is not None:
+            target.unlink(missing_ok=True)

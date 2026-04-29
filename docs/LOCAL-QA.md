@@ -31,6 +31,15 @@
 - OpenClaw-style transaction ingestion with `X-Agent-Name: openclaw` returns `201`.
 - Wrong agent key returns `401` and records `agent_audit.result = rejected`.
 
+## Phase 4 Gate
+
+- `GET /api/v1/budgets` lists configured budgets.
+- `POST /api/v1/budgets` creates a category budget.
+- Creating an expense over an active budget limit triggers a Telegram dry-run alert in local logs.
+- `GET /api/v1/reports/summary?period=weekly` returns period totals and category totals.
+- `GET /api/v1/reports/summary?period=monthly` returns period totals and insight text.
+- `GET /api/v1/reports/monthly.pdf?year=&month=` returns a valid PDF.
+
 ## Commands
 
 ```bash

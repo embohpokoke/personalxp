@@ -2,7 +2,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field
 
 
 EnteredBy = Literal["primary", "secondary"]
@@ -50,8 +50,6 @@ class ReceiptPublic(BaseModel):
 
 
 class TransactionPublic(BaseModel):
-    model_config = ConfigDict(json_encoders={Decimal: str})
-
     id: int
     user_id: int
     entered_by: EnteredBy | None = None
@@ -100,3 +98,44 @@ class TransactionPatch(BaseModel):
     txn_date: date | None = None
     is_recurring: bool | None = None
     recurring_pattern: str | None = None
+
+
+class BudgetCreate(BaseModel):
+    category_id: int
+    limit_amount: Decimal = Field(ge=0)
+    period: Literal["weekly", "monthly"]
+    start_date: date
+    end_date: date | None = None
+    alert_telegram: bool = True
+
+
+class BudgetPublic(BaseModel):
+    id: int
+    category_id: int
+    category: str
+    limit_amount: Decimal
+    period: Literal["weekly", "monthly"]
+    start_date: date
+    end_date: date | None = None
+    alert_telegram: bool
+    created_at: datetime
+
+
+class CategoryTotal(BaseModel):
+    category_id: int | None = None
+    category: str
+    type: Literal["expense", "income"]
+    total_idr: Decimal
+    count: int
+
+
+class ReportSummary(BaseModel):
+    period: Literal["weekly", "monthly"]
+    start_date: date
+    end_date: date
+    income_idr: Decimal
+    expense_idr: Decimal
+    net_idr: Decimal
+    transaction_count: int
+    category_totals: list[CategoryTotal]
+    insights: list[str]

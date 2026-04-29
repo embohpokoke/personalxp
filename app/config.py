@@ -16,6 +16,11 @@ class Settings(BaseSettings):
     agent_key_hermes: str = "change-me"
     agent_key_openclaw: str = "change-me"
 
+    telegram_bot_token: str = ""
+    telegram_chat_id_primary: str = ""
+    telegram_chat_id_secondary: str = ""
+    telegram_dry_run: bool = True
+
     receipts_dir: Path = Path("./receipts")
     max_receipt_bytes: int = 10_485_760
 

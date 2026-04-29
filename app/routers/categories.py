@@ -1,7 +1,7 @@
 from typing import Annotated
 
 import asyncpg
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.db import get_pool
 from app.deps import actor_from_request
@@ -46,6 +46,13 @@ async def create_category(
     pool: Annotated[asyncpg.Pool, Depends(get_pool)],
 ) -> CategoryPublic:
     await actor_from_request(request, pool)
+    category_name = payload.name.strip()
+    if not category_name:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="category name is required",
+        )
+
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             """
@@ -55,7 +62,7 @@ async def create_category(
             DO UPDATE SET icon = COALESCE(EXCLUDED.icon, categories.icon)
             RETURNING id, name, type, icon, is_custom, created_at
             """,
-            payload.name.strip(),
+            category_name,
             payload.type,
             payload.icon,
         )
