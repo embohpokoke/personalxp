@@ -1,9 +1,13 @@
 from datetime import date, timedelta
 from decimal import Decimal
+import logging
 
 import asyncpg
 
 from app.services.telegram import send_budget_alert
+
+
+logger = logging.getLogger("uvicorn.error")
 
 
 def period_bounds(period: str, today: date) -> tuple[date, date]:
@@ -65,8 +69,12 @@ async def check_budget_after_transaction(
         spent = Decimal(spent or 0)
         limit_amount = Decimal(budget["limit_amount"])
         if spent >= limit_amount:
-            await send_budget_alert(
+            message = (
                 f"Budget alert: {budget['category']} spending is {spent:,.0f} IDR "
                 f"against a {limit_amount:,.0f} IDR {budget['period']} limit "
                 f"after transaction #{transaction_id}."
             )
+            try:
+                await send_budget_alert(message)
+            except Exception:
+                logger.exception("budget alert delivery failed for transaction %s", transaction_id)

@@ -50,6 +50,12 @@ async def create_budget(
     pool: Annotated[asyncpg.Pool, Depends(get_pool)],
 ) -> BudgetPublic:
     await actor_from_request(request, pool)
+    if payload.end_date is not None and payload.end_date < payload.start_date:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="end_date must be on or after start_date",
+        )
+
     async with pool.acquire() as conn:
         category_exists = await conn.fetchval(
             "SELECT EXISTS (SELECT 1 FROM categories WHERE id = $1)",

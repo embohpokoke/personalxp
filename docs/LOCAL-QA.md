@@ -40,9 +40,23 @@
 - `GET /api/v1/reports/summary?period=monthly` returns period totals and insight text.
 - `GET /api/v1/reports/monthly.pdf?year=&month=` returns a valid PDF.
 
+## Phase 5 Gate
+
+- `/` serves the PWA shell locally through FastAPI.
+- PIN login works in the browser.
+- Dashboard loads live monthly summary, category totals, chart, and recent transactions.
+- Transactions view loads, filters, and refreshes live data.
+- Add Expense view creates a multipart transaction through the UI.
+- Budgets view lists and creates budgets.
+- Reports view shows monthly breakdown and offers PDF download.
+- Manifest and service worker are served.
+- PWA icons exist at `/icons/icon-192.png` and `/icons/icon-512.png`.
+- Mobile and desktop screenshots show the Stitch-inspired visual system without clipped primary controls.
+
 ## Commands
 
 ```bash
 make seed-check
 .venv/bin/python -m pytest -q
+node --check frontend/app.js
 ```
