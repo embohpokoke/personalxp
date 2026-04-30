@@ -1,5 +1,6 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+import re
 
 import asyncpg
 from fastapi import FastAPI, Request
@@ -7,13 +8,28 @@ from fastapi import FastAPI, Request
 from app.config import Settings, get_settings
 
 
+SCHEMA_NAME_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+def validate_schema_name(schema: str) -> str:
+    if not SCHEMA_NAME_PATTERN.fullmatch(schema):
+        raise ValueError("DB_SCHEMA must be a valid PostgreSQL identifier")
+    return schema
+
+
 async def connect(settings: Settings | None = None) -> asyncpg.Pool:
     settings = settings or get_settings()
+    db_schema = validate_schema_name(settings.db_schema)
+
+    async def init_connection(conn: asyncpg.Connection) -> None:
+        await conn.execute(f"SET search_path TO {db_schema}, public")
+
     return await asyncpg.create_pool(
         dsn=settings.database_url,
         min_size=1,
         max_size=5,
-        server_settings={"search_path": f"{settings.db_schema},public"},
+        init=init_connection,
+        server_settings={"search_path": f"{db_schema},public"},
     )
 
 
