@@ -73,4 +73,6 @@ SMOKE_PIN='<your-pin>' make smoke
 
 ## Production
 
-Production deployment is documented in the Obsidian project docs and should only happen after local sign-off.
+Production deployment files are included in `nginx/`, `systemd/`, `scripts/`, and `docs/DEPLOYMENT.md`.
+
+Deployment should only happen after local sign-off passes.
