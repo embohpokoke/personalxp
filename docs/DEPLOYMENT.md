@@ -31,6 +31,7 @@ Do not deploy before Phase 8 local sign-off is complete. See `docs/LOCAL-SIGNOFF
 | `docs/AGENT-API.md` | Hermes/OpenClaw integration contract |
 | `docs/LOCAL-SIGNOFF.md` | Phase 8 local sign-off status |
 | `docs/VPS-PREFLIGHT.md` | Read-only VPS preflight result |
+| `docs/PRODUCTION-DEPLOYMENT.md` | Production deployment result |
 
 ## Read-Only VPS Preflight
 
