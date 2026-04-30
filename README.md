@@ -76,3 +76,5 @@ SMOKE_PIN='<your-pin>' make smoke
 Production deployment files are included in `nginx/`, `systemd/`, `scripts/`, and `docs/DEPLOYMENT.md`.
 
 Deployment should only happen after local sign-off passes.
+
+Current local sign-off status is tracked in `docs/LOCAL-SIGNOFF.md`.

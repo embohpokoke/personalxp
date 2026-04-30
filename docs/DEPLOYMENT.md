@@ -2,7 +2,7 @@
 
 This is the production package guide for `personal-xp`.
 
-Do not deploy before local sign-off is complete. Phase 6 local smoke must pass before any VPS changes.
+Do not deploy before Phase 8 local sign-off is complete. See `docs/LOCAL-SIGNOFF.md` before running VPS preflight.
 
 ## Production Target
 
@@ -29,6 +29,7 @@ Do not deploy before local sign-off is complete. Phase 6 local smoke must pass b
 | `scripts/purge_receipts.sh` | Daily expired receipt cleanup |
 | `.env.example` | Environment variable template |
 | `docs/AGENT-API.md` | Hermes/OpenClaw integration contract |
+| `docs/LOCAL-SIGNOFF.md` | Phase 8 local sign-off status |
 
 ## Read-Only VPS Preflight
 
@@ -39,9 +40,11 @@ ssh vps-host
 ```
 
 ```bash
+set -euo pipefail
 ss -lntp | grep -E ':8004\b' || echo "8004 free"
 docker ps --format '{{.Names}}\t{{.Status}}' | grep livininbintaro-db
-docker exec livininbintaro-db psql -U postgres -d livininbintaro -c "\dn" | grep -E 'personal_xp' && echo "schema EXISTS - stop" || echo "schema absent"
+schema_exists="$(docker exec livininbintaro-db psql -U postgres -d livininbintaro -At -c "SELECT 1 FROM pg_namespace WHERE nspname = 'personal_xp';")"
+[[ "$schema_exists" == "1" ]] && echo "schema EXISTS - stop" || echo "schema absent"
 dig +short xp.embohpokoke.my.id
 test -e /opt/personal-xp && echo "app path EXISTS - stop" || echo "app path absent"
 test -e /etc/nginx/conf.d/xp.embohpokoke.my.id.conf && echo "nginx conf EXISTS - stop" || echo "nginx conf absent"
@@ -140,9 +143,9 @@ Apply the schema with only the hash inserted:
 
 ```bash
 PIN_HASH='<bcrypt-hash-from-command-above>'
-sed "s|__PIN_HASH_PLACEHOLDER__|$PIN_HASH|g" /opt/personal-xp/db/001_init.sql > /tmp/personal-xp-001_init.sql
-docker cp /tmp/personal-xp-001_init.sql livininbintaro-db:/tmp/personal-xp-001_init.sql
-docker exec livininbintaro-db psql -U postgres -d livininbintaro -f /tmp/personal-xp-001_init.sql
+sed "s|__PIN_HASH_PLACEHOLDER__|$PIN_HASH|g" /opt/personal-xp/db/001_init.sql \
+  | docker exec -i livininbintaro-db psql -U postgres -d livininbintaro -f -
+unset PIN_HASH
 ```
 
 Verify:

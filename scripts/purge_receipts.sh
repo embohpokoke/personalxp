@@ -2,9 +2,6 @@
 set -euo pipefail
 
 ENV_FILE="${PERSONAL_XP_ENV_FILE:-/root/.wallet/personal-xp.env}"
-POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-livininbintaro-db}"
-POSTGRES_DB="${POSTGRES_DB:-livininbintaro}"
-POSTGRES_USER="${POSTGRES_USER:-postgres}"
 
 if [[ -f "$ENV_FILE" ]]; then
   set -a
@@ -13,8 +10,21 @@ if [[ -f "$ENV_FILE" ]]; then
   set +a
 fi
 
+POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-livininbintaro-db}"
+POSTGRES_DB="${POSTGRES_DB:-livininbintaro}"
+POSTGRES_USER="${POSTGRES_USER:-postgres}"
 DB_SCHEMA="${DB_SCHEMA:-personal_xp}"
 RECEIPTS_DIR="${RECEIPTS_DIR:-/opt/personal-xp/receipts}"
+
+if [[ ! "$DB_SCHEMA" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+  echo "invalid DB_SCHEMA: $DB_SCHEMA" >&2
+  exit 1
+fi
+
+if [[ "$RECEIPTS_DIR" == "/" ]]; then
+  echo "refusing to purge receipts from /" >&2
+  exit 1
+fi
 
 mapfile -t expired_paths < <(
   docker exec "$POSTGRES_CONTAINER" psql \
@@ -28,7 +38,7 @@ deleted_files=0
 for relative_path in "${expired_paths[@]}"; do
   [[ -z "$relative_path" ]] && continue
   case "$relative_path" in
-    /*|*..*)
+    /*|*..*|*$'\r'*|*$'\n'*)
       echo "skipping unsafe receipt path: $relative_path" >&2
       continue
       ;;
