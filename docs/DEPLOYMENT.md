@@ -2,7 +2,7 @@
 
 This is the production package guide for `personal-xp`.
 
-Do not deploy before Phase 8 local sign-off is complete. See `docs/LOCAL-SIGNOFF.md` before running VPS preflight.
+Do not deploy before Phase 8 local sign-off is complete. See `docs/LOCAL-SIGNOFF.md` before running VPS preflight, then record the result in `docs/VPS-PREFLIGHT.md`.
 
 ## Production Target
 
@@ -30,6 +30,7 @@ Do not deploy before Phase 8 local sign-off is complete. See `docs/LOCAL-SIGNOFF
 | `.env.example` | Environment variable template |
 | `docs/AGENT-API.md` | Hermes/OpenClaw integration contract |
 | `docs/LOCAL-SIGNOFF.md` | Phase 8 local sign-off status |
+| `docs/VPS-PREFLIGHT.md` | Read-only VPS preflight result |
 
 ## Read-Only VPS Preflight
 
