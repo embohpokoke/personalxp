@@ -130,7 +130,7 @@ class CategoryTotal(BaseModel):
 
 
 class ReportSummary(BaseModel):
-    period: Literal["weekly", "monthly"]
+    period: Literal["weekly", "monthly", "custom"]
     start_date: date
     end_date: date
     income_idr: Decimal

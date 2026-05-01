@@ -55,7 +55,7 @@ def insight_text(
 async def build_summary(
     conn: asyncpg.Connection,
     *,
-    period: Literal["weekly", "monthly"],
+    period: Literal["weekly", "monthly", "custom"],
     start_date: date,
     end_date: date,
 ) -> ReportSummary:
@@ -122,10 +122,16 @@ async def build_summary(
 async def summary(
     request: Request,
     pool: Annotated[asyncpg.Pool, Depends(get_pool)],
-    period: Literal["weekly", "monthly"] = "monthly",
+    period: Literal["weekly", "monthly", "custom"] = "monthly",
+    from_date: Annotated[date | None, Query(alias="from")] = None,
+    to_date: Annotated[date | None, Query(alias="to")] = None,
 ) -> ReportSummary:
     await actor_from_request(request, pool)
-    start_date, end_date = period_bounds(period, date.today())
+    if from_date and to_date:
+        start_date, end_date = from_date, to_date
+        period = "custom"
+    else:
+        start_date, end_date = period_bounds(period, date.today())
     async with pool.acquire() as conn:
         return await build_summary(conn, period=period, start_date=start_date, end_date=end_date)
 
@@ -146,4 +152,23 @@ async def monthly_pdf(
         content=pdf,
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="personalxp-{year}-{month:02d}.pdf"'},
+    )
+
+
+@router.get("/period.pdf")
+async def period_pdf(
+    request: Request,
+    pool: Annotated[asyncpg.Pool, Depends(get_pool)],
+    from_date: Annotated[date, Query(alias="from")],
+    to_date: Annotated[date, Query(alias="to")],
+) -> Response:
+    await actor_from_request(request, pool)
+    async with pool.acquire() as conn:
+        summary = await build_summary(conn, period="custom", start_date=from_date, end_date=to_date)
+    pdf = monthly_report_pdf(summary)
+    filename = f"personalxp-{from_date.isoformat()}-to-{to_date.isoformat()}.pdf"
+    return Response(
+        content=pdf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )

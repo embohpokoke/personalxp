@@ -20,7 +20,13 @@ createApp({
       budgets: [],
       monthlySummary: null,
       weeklySummary: null,
+      customReportSummary: null,
+      reportPeriod: {
+        from: todayIso(),
+        to: todayIso()
+      },
       form: this.blankTransaction(),
+      editingId: null,
       budgetForm: {
         category_id: "",
         limit_amount: "",
@@ -32,7 +38,9 @@ createApp({
       filters: {
         q: "",
         source_agent: "",
-        category_id: ""
+        category_id: "",
+        from: "",
+        to: ""
       },
       receiptFile: null,
       receiptName: "",
@@ -52,7 +60,8 @@ createApp({
       return this.categories.filter((category) => category.type === "expense");
     },
     topCategories() {
-      const totals = this.monthlySummary?.category_totals || [];
+      const summary = this.customReportSummary || this.monthlySummary;
+      const totals = summary?.category_totals || [];
       return totals.filter((item) => item.type === "expense").slice(0, 5);
     },
     recentTransactions() {
@@ -89,6 +98,12 @@ createApp({
       nextTick(() => this.renderCharts());
     },
     monthlySummary: {
+      deep: true,
+      handler() {
+        nextTick(() => this.renderCharts());
+      }
+    },
+    customReportSummary: {
       deep: true,
       handler() {
         nextTick(() => this.renderCharts());
@@ -195,6 +210,8 @@ createApp({
       if (this.filters.q) params.set("q", this.filters.q);
       if (this.filters.source_agent) params.set("source_agent", this.filters.source_agent);
       if (this.filters.category_id) params.set("category_id", this.filters.category_id);
+      if (this.filters.from) params.set("from", this.filters.from);
+      if (this.filters.to) params.set("to", this.filters.to);
       const payload = await this.api(`/api/v1/transactions?${params.toString()}`);
       this.transactions = payload.items;
       this.transactionTotal = payload.total;
@@ -210,8 +227,83 @@ createApp({
       this.monthlySummary = monthly;
       this.weeklySummary = weekly;
     },
+    async loadCustomReport() {
+      this.error = "";
+      try {
+        const summary = await this.api(`/api/v1/reports/summary?period=custom&from=${this.reportPeriod.from}&to=${this.reportPeriod.to}`);
+        this.customReportSummary = summary;
+      } catch (error) {
+        this.error = error.message;
+      }
+    },
+    setSalaryPeriod() {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = today.getMonth();
+      const day = today.getDate();
+      let from, to;
+      if (day >= 25) {
+        from = new Date(year, month, 25);
+        to = new Date(year, month + 1, 24);
+      } else {
+        from = new Date(year, month - 1, 25);
+        to = new Date(year, month, 24);
+      }
+      this.reportPeriod.from = from.toISOString().slice(0, 10);
+      this.reportPeriod.to = to.toISOString().slice(0, 10);
+    },
+    editTransaction(txn) {
+      this.editingId = txn.id;
+      this.form = {
+        amount: String(txn.amount),
+        type: txn.type,
+        category: txn.category || "",
+        merchant: txn.merchant || "",
+        description: txn.description || "",
+        txn_date: txn.txn_date,
+        currency: txn.currency,
+        exchange_rate: String(txn.exchange_rate),
+        entered_by: txn.entered_by || "primary"
+      };
+      this.view = "add";
+    },
+    cancelEdit() {
+      this.editingId = null;
+      this.form = this.blankTransaction();
+      this.view = "transactions";
+    },
+    async updateTransaction() {
+      this.error = "";
+      const payload = {
+        amount: this.form.amount,
+        type: this.form.type,
+        txn_date: this.form.txn_date,
+        currency: this.form.currency,
+        exchange_rate: this.form.exchange_rate,
+        category: this.form.category || null,
+        description: this.form.description || null,
+        merchant: this.form.merchant || null,
+        entered_by: this.form.entered_by
+      };
+      try {
+        await this.api(`/api/v1/transactions/${this.editingId}`, {
+          method: "PATCH",
+          body: JSON.stringify(payload)
+        });
+        this.editingId = null;
+        this.form = this.blankTransaction();
+        await this.loadAll();
+        this.view = "transactions";
+      } catch (error) {
+        this.error = error.message;
+      }
+    },
     async submitTransaction() {
       this.error = "";
+      if (this.editingId) {
+        await this.updateTransaction();
+        return;
+      }
       const data = new FormData();
       Object.entries(this.form).forEach(([key, value]) => {
         if (value !== "" && value !== null && value !== undefined) data.append(key, value);
@@ -260,8 +352,12 @@ createApp({
       this.receiptName = this.receiptFile ? this.receiptFile.name : "";
     },
     async downloadPdf() {
-      const now = new Date();
-      window.location.href = `/api/v1/reports/monthly.pdf?year=${now.getFullYear()}&month=${now.getMonth() + 1}`;
+      if (this.customReportSummary && this.customReportSummary.period === "custom") {
+        window.location.href = `/api/v1/reports/period.pdf?from=${this.reportPeriod.from}&to=${this.reportPeriod.to}`;
+      } else {
+        const now = new Date();
+        window.location.href = `/api/v1/reports/monthly.pdf?year=${now.getFullYear()}&month=${now.getMonth() + 1}`;
+      }
     },
     setView(view) {
       this.view = view;
@@ -269,8 +365,11 @@ createApp({
     },
     renderCharts() {
       if (!this.authenticated || !window.Chart) return;
-      const labels = this.topCategories.map((item) => item.category);
-      const values = this.topCategories.map((item) => Number(item.total_idr));
+      const summary = this.customReportSummary || this.monthlySummary;
+      const expenseCategories = (summary?.category_totals || []).filter((item) => item.type === "expense");
+      const topItems = expenseCategories.slice(0, 5);
+      const labels = topItems.map((item) => item.category);
+      const values = topItems.map((item) => Number(item.total_idr));
       const colors = ["#00c292", "#fe7d5e", "#db8cfa", "#41dfac", "#a53b22"];
 
       if (this.$refs.dashboardChart) {
@@ -475,6 +574,12 @@ createApp({
               <button class="secondary-btn px-4" @click="loadTransactions"><span class="material-symbols-outlined">refresh</span></button>
             </div>
             <div class="card p-4 space-y-3">
+              <div class="grid grid-cols-2 gap-3">
+                <input type="date" v-model="filters.from" class="field" @change="loadTransactions">
+                <input type="date" v-model="filters.to" class="field" @change="loadTransactions">
+              </div>
+            </div>
+            <div class="card p-4 space-y-3">
               <input v-model="filters.q" class="field" placeholder="Search merchant or category" @change="loadTransactions">
               <div class="grid grid-cols-2 gap-3">
                 <select v-model="filters.category_id" class="field" @change="loadTransactions">
@@ -501,14 +606,20 @@ createApp({
                 </div>
                 <div class="text-right">
                   <p class="font-extrabold" :class="txn.type === 'income' ? 'amount-income' : 'amount-expense'">{{ txn.type === 'income' ? '+' : '-' }}{{ formatMoney(txn.amount_idr) }}</p>
-                  <button class="mt-1 text-xs font-bold text-danger" @click="deleteTransaction(txn)">Delete</button>
+                  <div class="mt-1 flex gap-2 justify-end">
+                    <button class="text-xs font-bold text-primary" @click="editTransaction(txn)">Edit</button>
+                    <button class="text-xs font-bold text-danger" @click="deleteTransaction(txn)">Delete</button>
+                  </div>
                 </div>
               </div>
             </div>
           </section>
 
           <section v-show="view === 'add'" class="space-y-5">
-            <h2 class="section-title">Add Expense</h2>
+            <div class="flex items-center justify-between">
+              <h2 class="section-title">{{ editingId ? 'Edit Transaction' : 'Add Expense' }}</h2>
+              <button v-if="editingId" class="secondary-btn px-4" @click="cancelEdit">Cancel</button>
+            </div>
             <form class="card p-4 space-y-4" @submit.prevent="submitTransaction">
               <div>
                 <label class="label-caps block mb-2">Amount</label>
@@ -540,7 +651,7 @@ createApp({
                   <span class="min-w-0 truncate text-sm font-semibold text-textMuted">{{ receiptName || 'No file selected' }}</span>
                 </div>
               </div>
-              <button class="primary-btn w-full" type="submit">Save Transaction</button>
+              <button class="primary-btn w-full" type="submit">{{ editingId ? 'Update Transaction' : 'Save Transaction' }}</button>
             </form>
           </section>
 
@@ -588,6 +699,48 @@ createApp({
                 PDF
               </button>
             </div>
+
+            <div class="card p-4 space-y-3">
+              <p class="label-caps">Select Period</p>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="text-xs font-bold text-textMuted block mb-1">From</label>
+                  <input type="date" v-model="reportPeriod.from" class="field">
+                </div>
+                <div>
+                  <label class="text-xs font-bold text-textMuted block mb-1">To</label>
+                  <input type="date" v-model="reportPeriod.to" class="field">
+                </div>
+              </div>
+              <div class="flex gap-2">
+                <button class="primary-btn flex-1" @click="loadCustomReport">Load Report</button>
+                <button class="secondary-btn flex-1" @click="setSalaryPeriod">This Salary Period</button>
+              </div>
+            </div>
+
+            <div v-if="customReportSummary" class="card p-4">
+              <div class="flex items-center justify-between mb-2">
+                <p class="label-caps">Custom Period Net</p>
+                <p class="text-xs font-bold text-textMuted">{{ customReportSummary.start_date }} → {{ customReportSummary.end_date }}</p>
+              </div>
+              <p class="money-display mt-2">{{ formatMoney(customReportSummary.net_idr) }}</p>
+              <div class="mt-3 grid grid-cols-3 gap-2 text-center">
+                <div class="rounded-xl bg-primarySoft p-2">
+                  <p class="text-xs font-bold text-textMuted">Income</p>
+                  <p class="font-extrabold text-primary">{{ formatMoney(customReportSummary.income_idr) }}</p>
+                </div>
+                <div class="rounded-xl bg-dangerSoft p-2">
+                  <p class="text-xs font-bold text-textMuted">Expense</p>
+                  <p class="font-extrabold text-danger">{{ formatMoney(customReportSummary.expense_idr) }}</p>
+                </div>
+                <div class="rounded-xl bg-surfaceHigh p-2">
+                  <p class="text-xs font-bold text-textMuted">Records</p>
+                  <p class="font-extrabold">{{ customReportSummary.transaction_count }}</p>
+                </div>
+              </div>
+              <p class="mt-3 text-sm font-semibold text-textMuted">{{ customReportSummary.insights?.[0] || 'No insight yet.' }}</p>
+            </div>
+
             <div class="card p-4">
               <p class="label-caps">Monthly Net</p>
               <p class="money-display mt-2">{{ formatMoney(monthlySummary?.net_idr) }}</p>
@@ -596,14 +749,14 @@ createApp({
             <div class="card p-4">
               <div class="mb-4 flex items-center justify-between">
                 <p class="font-extrabold">Category Breakdown</p>
-                <p class="text-sm font-bold text-textMuted">{{ monthlySummary?.transaction_count || 0 }} records</p>
+                <p class="text-sm font-bold text-textMuted">{{ (customReportSummary || monthlySummary)?.transaction_count || 0 }} records</p>
               </div>
               <div class="chart-box">
                 <canvas ref="reportChart"></canvas>
               </div>
             </div>
             <div class="card overflow-hidden">
-              <div v-for="item in monthlySummary?.category_totals || []" :key="item.category + item.type" class="row">
+              <div v-for="item in (customReportSummary || monthlySummary)?.category_totals || []" :key="item.category + item.type" class="row">
                 <div class="grid h-12 w-12 place-items-center rounded-2xl bg-surfaceLow text-primary">
                   <span class="material-symbols-outlined">{{ iconForCategory(item.category) }}</span>
                 </div>
