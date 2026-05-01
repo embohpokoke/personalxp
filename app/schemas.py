@@ -34,7 +34,7 @@ class CategoryCreate(BaseModel):
 class CategoryPublic(BaseModel):
     id: int
     name: str
-    type: Literal["expense", "income"]
+    type: Literal["expense", "income", "transfer"]
     icon: str | None = None
     is_custom: bool
     created_at: datetime
@@ -54,7 +54,7 @@ class TransactionPublic(BaseModel):
     user_id: int
     entered_by: EnteredBy | None = None
     source_agent: str | None = None
-    type: Literal["expense", "income"]
+    type: Literal["expense", "income", "transfer"]
     amount: Decimal
     currency: str
     exchange_rate: Decimal
@@ -86,7 +86,7 @@ class TransactionCreateResponse(BaseModel):
 
 class TransactionPatch(BaseModel):
     entered_by: EnteredBy | None = None
-    type: Literal["expense", "income"] | None = None
+    type: Literal["expense", "income", "transfer"] | None = None
     amount: Decimal | None = Field(default=None, ge=0)
     currency: str | None = Field(default=None, min_length=3, max_length=3)
     exchange_rate: Decimal | None = Field(default=None, gt=0)
@@ -124,7 +124,7 @@ class BudgetPublic(BaseModel):
 class CategoryTotal(BaseModel):
     category_id: int | None = None
     category: str
-    type: Literal["expense", "income"]
+    type: Literal["expense", "income", "transfer"]
     total_idr: Decimal
     count: int
 
@@ -135,6 +135,7 @@ class ReportSummary(BaseModel):
     end_date: date
     income_idr: Decimal
     expense_idr: Decimal
+    transfer_idr: Decimal
     net_idr: Decimal
     transaction_count: int
     category_totals: list[CategoryTotal]

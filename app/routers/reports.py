@@ -64,6 +64,7 @@ async def build_summary(
         SELECT
           COALESCE(sum(amount_idr) FILTER (WHERE type = 'income'), 0) AS income_idr,
           COALESCE(sum(amount_idr) FILTER (WHERE type = 'expense'), 0) AS expense_idr,
+          COALESCE(sum(amount_idr) FILTER (WHERE type = 'transfer'), 0) AS transfer_idr,
           count(*) AS transaction_count
         FROM transactions
         WHERE txn_date BETWEEN $1 AND $2
@@ -100,12 +101,14 @@ async def build_summary(
     ]
     income_idr = Decimal(totals["income_idr"])
     expense_idr = Decimal(totals["expense_idr"])
+    transfer_idr = Decimal(totals["transfer_idr"])
     return ReportSummary(
         period=period,
         start_date=start_date,
         end_date=end_date,
         income_idr=income_idr,
         expense_idr=expense_idr,
+        transfer_idr=transfer_idr,
         net_idr=income_idr - expense_idr,
         transaction_count=totals["transaction_count"],
         category_totals=category_totals,

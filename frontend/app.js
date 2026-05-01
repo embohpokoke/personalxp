@@ -59,6 +59,9 @@ createApp({
     expenseCategories() {
       return this.categories.filter((category) => category.type === "expense");
     },
+    transferCategories() {
+      return this.categories.filter((category) => category.type === "transfer");
+    },
     topCategories() {
       const summary = this.customReportSummary || this.monthlySummary;
       const totals = summary?.category_totals || [];
@@ -553,15 +556,15 @@ createApp({
               <div class="card overflow-hidden">
                 <div v-if="!recentTransactions.length" class="empty-state">No transactions yet.</div>
                 <div v-for="txn in recentTransactions" :key="txn.id" class="row">
-                  <div class="grid h-12 w-12 place-items-center rounded-2xl" :class="txn.type === 'income' ? 'bg-primarySoft text-primary' : 'bg-dangerSoft text-danger'">
+                  <div class="grid h-12 w-12 place-items-center rounded-2xl" :class="txn.type === 'income' ? 'bg-primarySoft text-primary' : txn.type === 'transfer' ? 'bg-primarySoft text-primary' : 'bg-dangerSoft text-danger'">
                     <span class="material-symbols-outlined">{{ iconForCategory(txn.category) }}</span>
                   </div>
                   <div class="min-w-0">
                     <p class="truncate text-lg font-extrabold">{{ txn.merchant || txn.category || 'Transaction' }}</p>
                     <p class="text-sm text-textMuted">{{ formatDate(txn.txn_date) }} · {{ txn.source_agent }}</p>
                   </div>
-                  <p class="text-right text-lg font-extrabold" :class="txn.type === 'income' ? 'amount-income' : 'amount-expense'">
-                    {{ txn.type === 'income' ? '+' : '-' }}{{ formatMoney(txn.amount_idr) }}
+                  <p class="text-right text-lg font-extrabold" :class="txn.type === 'income' ? 'amount-income' : txn.type === 'transfer' ? 'text-primary' : 'amount-expense'">
+                    {{ txn.type === 'income' ? '+' : txn.type === 'transfer' ? '↔' : '-' }}{{ formatMoney(txn.amount_idr) }}
                   </p>
                 </div>
               </div>
@@ -597,7 +600,7 @@ createApp({
             <div class="card overflow-hidden">
               <div v-if="!transactions.length" class="empty-state">Nothing matches the current filters.</div>
               <div v-for="txn in transactions" :key="txn.id" class="row">
-                <div class="grid h-12 w-12 place-items-center rounded-2xl bg-surfaceLow text-primary">
+                <div class="grid h-12 w-12 place-items-center rounded-2xl bg-surfaceLow text-primary" :class="txn.type === 'transfer' ? 'bg-primarySoft text-primary' : ''">
                   <span class="material-symbols-outlined">{{ iconForCategory(txn.category) }}</span>
                 </div>
                 <div class="min-w-0">
@@ -605,7 +608,7 @@ createApp({
                   <p class="text-xs font-semibold text-textMuted">{{ formatDate(txn.txn_date) }} · {{ txn.category || 'Uncategorized' }} · {{ txn.source_agent }}</p>
                 </div>
                 <div class="text-right">
-                  <p class="font-extrabold" :class="txn.type === 'income' ? 'amount-income' : 'amount-expense'">{{ txn.type === 'income' ? '+' : '-' }}{{ formatMoney(txn.amount_idr) }}</p>
+                  <p class="font-extrabold" :class="txn.type === 'income' ? 'amount-income' : txn.type === 'transfer' ? 'text-primary' : 'amount-expense'">{{ txn.type === 'income' ? '+' : txn.type === 'transfer' ? '↔' : '-' }}{{ formatMoney(txn.amount_idr) }}</p>
                   <div class="mt-1 flex gap-2 justify-end">
                     <button class="text-xs font-bold text-primary" @click="editTransaction(txn)">Edit</button>
                     <button class="text-xs font-bold text-danger" @click="deleteTransaction(txn)">Delete</button>
@@ -629,6 +632,7 @@ createApp({
                 <select v-model="form.type" class="field">
                   <option value="expense">Expense</option>
                   <option value="income">Income</option>
+                  <option value="transfer">Transfer</option>
                 </select>
                 <input v-model="form.txn_date" class="field" type="date" required>
               </div>

@@ -142,16 +142,16 @@ def parse_source_extra(value: str | None) -> dict[str, Any] | None:
     return parsed
 
 
-def normalize_type(value: str | None) -> Literal["expense", "income"]:
-    if value not in ("expense", "income"):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="type must be expense or income")
+def normalize_type(value: str | None) -> Literal["expense", "income", "transfer"]:
+    if value not in ("expense", "income", "transfer"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="type must be expense, income, or transfer")
     return value
 
 
 async def category_id_for_name(
     conn: asyncpg.Connection,
     category_name: str | None,
-    txn_type: Literal["expense", "income"],
+    txn_type: Literal["expense", "income", "transfer"],
 ) -> int | None:
     if not category_name:
         return None
