@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import Annotated, Literal
 
 import asyncpg
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import Response
 
 from app.db import get_pool
@@ -127,9 +127,10 @@ async def summary(
     to_date: Annotated[date | None, Query(alias="to")] = None,
 ) -> ReportSummary:
     await actor_from_request(request, pool)
-    if from_date and to_date:
+    if period == "custom":
+        if not from_date or not to_date:
+            raise HTTPException(status_code=400, detail="from and to dates are required for custom period")
         start_date, end_date = from_date, to_date
-        period = "custom"
     else:
         start_date, end_date = period_bounds(period, date.today())
     async with pool.acquire() as conn:
