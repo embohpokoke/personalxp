@@ -1,4 +1,4 @@
-const CACHE_NAME = "personalxp-shell-v1";
+const CACHE_NAME = "personalxp-shell-v2";
 const SHELL_ASSETS = ["/", "/app.js", "/styles.css", "/manifest.json", "/icons/icon-192.png", "/icons/icon-512.png"];
 
 self.addEventListener("install", (event) => {
