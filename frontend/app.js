@@ -25,6 +25,11 @@ createApp({
         from: todayIso(),
         to: todayIso()
       },
+      dashboardSummary: null,
+      dashboardPeriod: {
+        from: todayIso(),
+        to: todayIso()
+      },
       form: this.blankTransaction(),
       editingId: null,
       budgetForm: {
@@ -63,7 +68,7 @@ createApp({
       return this.categories.filter((category) => category.type === "transfer");
     },
     topCategories() {
-      const summary = this.customReportSummary || this.monthlySummary;
+      const summary = this.dashboardSummary || this.monthlySummary;
       const totals = summary?.category_totals || [];
       return totals.filter((item) => item.type === "expense").slice(0, 5);
     },
@@ -71,10 +76,10 @@ createApp({
       return this.transactions.slice(0, 8);
     },
     totalExpense() {
-      return Number(this.monthlySummary?.expense_idr || 0);
+      return Number((this.dashboardSummary || this.monthlySummary)?.expense_idr || 0);
     },
     totalIncome() {
-      return Number(this.monthlySummary?.income_idr || 0);
+      return Number((this.dashboardSummary || this.monthlySummary)?.income_idr || 0);
     },
     safeToSpend() {
       const activeBudgetTotal = this.budgets.reduce((sum, budget) => {
@@ -239,6 +244,15 @@ createApp({
         this.error = error.message;
       }
     },
+    async loadDashboardSummary() {
+      this.error = "";
+      try {
+        const summary = await this.api(`/api/v1/reports/summary?period=custom&from=${this.dashboardPeriod.from}&to=${this.dashboardPeriod.to}`);
+        this.dashboardSummary = summary;
+      } catch (error) {
+        this.error = error.message;
+      }
+    },
     setSalaryPeriod() {
       const today = new Date();
       const year = today.getFullYear();
@@ -254,6 +268,22 @@ createApp({
       }
       this.reportPeriod.from = from.toISOString().slice(0, 10);
       this.reportPeriod.to = to.toISOString().slice(0, 10);
+    },
+    setDashboardSalaryPeriod() {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = today.getMonth();
+      const day = today.getDate();
+      let from, to;
+      if (day >= 25) {
+        from = new Date(year, month, 25);
+        to = new Date(year, month + 1, 24);
+      } else {
+        from = new Date(year, month - 1, 25);
+        to = new Date(year, month, 24);
+      }
+      this.dashboardPeriod.from = from.toISOString().slice(0, 10);
+      this.dashboardPeriod.to = to.toISOString().slice(0, 10);
     },
     editTransaction(txn) {
       this.editingId = txn.id;
@@ -368,7 +398,7 @@ createApp({
     },
     renderCharts() {
       if (!this.authenticated || !window.Chart) return;
-      const summary = this.customReportSummary || this.monthlySummary;
+      const summary = this.dashboardSummary || this.customReportSummary || this.monthlySummary;
       const expenseCategories = (summary?.category_totals || []).filter((item) => item.type === "expense");
       const topItems = expenseCategories.slice(0, 5);
       const labels = topItems.map((item) => item.category);
@@ -505,14 +535,32 @@ createApp({
           <p v-if="error" class="mb-4 rounded-2xl bg-dangerSoft px-4 py-3 text-sm font-bold text-danger">{{ error }}</p>
 
           <section v-show="view === 'dashboard'" class="space-y-8">
+            <div class="card p-4 space-y-3">
+              <p class="label-caps">Select Period</p>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="text-xs font-bold text-textMuted block mb-1">From</label>
+                  <input type="date" v-model="dashboardPeriod.from" class="field">
+                </div>
+                <div>
+                  <label class="text-xs font-bold text-textMuted block mb-1">To</label>
+                  <input type="date" v-model="dashboardPeriod.to" class="field">
+                </div>
+              </div>
+              <div class="flex gap-2">
+                <button class="primary-btn flex-1" @click="loadDashboardSummary">Load Dashboard</button>
+                <button class="secondary-btn flex-1" @click="setDashboardSalaryPeriod">This Salary Period</button>
+              </div>
+            </div>
+
             <div class="card p-4">
               <div class="flex items-center justify-between gap-4">
                 <div class="min-w-0">
-                  <p class="label-caps">Monthly Expenses</p>
+                  <p class="label-caps">{{ dashboardSummary ? 'Period Expenses' : 'Monthly Expenses' }}</p>
                   <h2 class="money-display mt-2">{{ formatMoney(totalExpense) }}</h2>
                   <div class="mt-3 inline-flex items-center gap-1 rounded-full bg-primarySoft px-3 py-1 text-sm font-extrabold text-primary">
                     <span class="material-symbols-outlined text-base">trending_up</span>
-                    {{ monthlySummary?.transaction_count || 0 }} records
+                    {{ (dashboardSummary || monthlySummary)?.transaction_count || 0 }} records
                   </div>
                 </div>
                 <div class="relative h-28 w-28 shrink-0">
